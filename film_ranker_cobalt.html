@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your TOP 10 Film Ranking</title>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #080e1a;
+    --surface:     #0d1528;
+    --surface-2:   #121c32;
+    --border:      rgba(160,185,230,0.1);
+    --border-hi:   rgba(160,185,230,0.35);
+    --accent:      #7a9fd4;
+    --accent-glow: rgba(122,159,212,0.09);
+    --warm:        #7a9fd4;
+    --red:         #9e3b30;
+    --text:        #e8edf6;
+    --text-2:      #607090;
+    --text-3:      #324060;
+    --r-card:      2px;
+    --slot-gap:    6px;
+    --page-x:      24px;
+    --card-h:      80px;
+    --poster-w:    56px;
+  }
+
+  body { font-family:'Jost',system-ui,sans-serif; font-weight:300; letter-spacing:0.03em; background:var(--bg); color:var(--text); min-height:100dvh; padding:48px var(--page-x) 100px; background-image:radial-gradient(ellipse 70% 35% at 50% 0%,rgba(80,120,220,0.09) 0%,transparent 65%); -webkit-tap-highlight-color:transparent; }
+
+  .header { text-align:center; margin-bottom:40px; }
+  h1 { font-family:'Playfair Display',serif; font-weight:400; font-size:2.6rem; letter-spacing:0.28em; line-height:1.1; color:var(--text); text-transform:uppercase; }
+  .header p { font-family:'Jost',sans-serif; font-size:0.58rem; font-weight:200; color:var(--text-3); letter-spacing:0.35em; text-transform:uppercase; margin-top:14px; }
+
+  .stats-panel { max-width:600px; margin:10px auto 0; padding:0 0 8px; display:none; opacity:0; transition:opacity 0.4s; }
+  .stats-panel.visible { opacity:1; }
+  .stats-title { font-size:0.58rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3); text-align:center; margin-bottom:10px; }
+  .stats-grid { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .stat-pill { padding:5px 16px; border-radius:0; background:transparent; border:1px solid var(--border); }
+  .stat-label { font-size:0.56rem; color:var(--text-3); text-align:center; letter-spacing:0.06em; text-transform:uppercase; }
+  .stat-value { font-size:0.74rem; color:var(--text-2); margin-top:1px; text-align:center; font-weight:500; }
+
+  .add-film { display:flex; gap:10px; justify-content:center; margin-bottom:28px; flex-wrap:wrap; align-items:flex-start; }
+  .search-wrap { position:relative; width:380px; }
+  .search-wrap input { width:100%; padding:14px 22px; border-radius:0; border:none; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font-family:inherit; font-size:0.82rem; font-weight:300; letter-spacing:0.1em; -webkit-appearance:none; transition:border-color 0.2s,box-shadow 0.2s; }
+  .search-wrap input::placeholder { color:var(--text-3); }
+  .search-wrap input:focus { outline:none; border-color:var(--accent); background:transparent; box-shadow:none; }
+  .suggestions { position:absolute; top:calc(100% + 10px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:0; overflow:hidden; z-index:100; box-shadow:0 16px 48px rgba(0,0,0,0.75); display:none; }
+  .suggestions.visible { display:block; }
+  .suggestion-item { display:flex; align-items:center; gap:12px; padding:10px 16px; cursor:pointer; transition:background 0.12s; border-bottom:1px solid var(--border); }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover,.suggestion-item.active { background:var(--surface-2); }
+  .sug-poster { width:30px; height:44px; flex-shrink:0; border-radius:5px; object-fit:cover; }
+  .sug-poster-placeholder { width:30px; height:44px; flex-shrink:0; border-radius:5px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:0.9rem; }
+  .sug-info { flex:1; min-width:0; }
+  .sug-title { font-size:0.86rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sug-year { font-size:0.7rem; color:var(--text-2); margin-top:2px; }
+  .suggestions-loading,.suggestions-empty { padding:16px; text-align:center; color:var(--text-2); font-size:0.8rem; }
+
+  .controls-row { max-width:600px; margin:0 auto 18px; display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+  .chip-btn { border-radius:0; border:1px solid var(--border); background:transparent; color:var(--text-2); padding:6px 18px; font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Jost',inherit; font-weight:300; transition:background 0.15s,border-color 0.2s,color 0.15s; }
+  .chip-btn:hover { background:var(--accent-glow); border-color:var(--border-hi); color:var(--text); }
+
+  .ranking-area { display:flex; flex-direction:column; max-width:600px; margin:0 auto; gap:var(--slot-gap); }
+  .rank-slot { display:flex; align-items:center; gap:12px; }
+  .rank-label { width:22px; text-align:right; flex-shrink:0; font-family:'Jost',sans-serif; font-size:0.62rem; font-weight:300; color:var(--text-3); font-variant-numeric:tabular-nums; letter-spacing:0.05em; }
+
+  .drop-zone { flex:1; height:var(--card-h); border:1px solid rgba(212,190,150,0.06); border-radius:var(--r-card); display:flex; align-items:center; justify-content:center; color:var(--text-3); font-size:0.7rem; transition:border-color 0.18s,background 0.18s; }
+  .drop-zone.drag-over { border-color:var(--accent); background:var(--accent-glow); color:var(--accent); }
+  .drop-zone.insert-mode { border-color:var(--warm); background:rgba(122,159,212,0.05); }
+  .drop-zone.insert-mode::after { content:'Insert here'; font-size:0.7rem; color:var(--warm); font-weight:500; }
+
+  /* ══════════════════════════════════
+     RANKED FILM CARD
+  ══════════════════════════════════ */
+  .film-card {
+    flex: 1; height: var(--card-h);
+    display: flex; align-items: center; gap: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-card); overflow: hidden;
+    cursor: grab; user-select: none; position: relative;
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.2s, opacity 0.2s;
+    will-change: transform;
+  }
+  .film-card:hover { border-color:var(--border-hi); background:var(--surface-2); box-shadow:0 4px 32px rgba(0,0,0,0.5); }
+  .film-card:active { cursor:grabbing; }
+  .film-card.dragging { opacity:0.22; transform:scale(0.98); }
+  .film-card.insert-mode { border-color:rgba(244,162,97,0.45); background:rgba(244,162,97,0.04); }
+
+  .drag-handle { color:transparent; font-size:1rem; cursor:grab; flex-shrink:0; display:flex; align-items:center; padding:0 6px 0 10px; height:100%; transition:color 0.15s; user-select:none; }
+  .film-card:hover .drag-handle { color:var(--text-3); }
+
+  /* ── Poster — flush left, fades right into card ── */
+  .poster-wrap {
+    position: relative;
+    width: var(--poster-w);
+    height: 100%;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 0;
+  }
+  .poster-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    transition: transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.3s ease;
+    filter: brightness(0.88) saturate(1.05);
+  }
+  .film-card:hover .poster-wrap img {
+    transform: scale(1.08);
+    filter: brightness(1.0) saturate(1.18);
+  }
+  .poster-placeholder { font-size: 1.3rem; }
+
+  /* top + bottom edge vignette so image doesn't clash with card border */
+  /* right-edge blend into card */
+  .poster-wrap::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to right, transparent 55%, var(--surface) 100%);
+    pointer-events: none; z-index: 1;
+    transition: opacity 0.3s ease;
+  }
+  .film-card:hover .poster-wrap::before { opacity: 0.5; }
+  /* gloss sheen on hover */
+  .poster-wrap::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,0.14) 0%,
+      rgba(255,255,255,0.0) 50%,
+      rgba(0,0,0,0.12) 100%);
+    pointer-events: none; z-index: 2;
+    opacity: 0; transition: opacity 0.35s ease;
+  }
+  .film-card:hover .poster-wrap::after { opacity: 1; }
+
+  /* Film info */
+  .film-info { flex:1; min-width:0; padding:0 8px 0 12px; display:flex; flex-direction:column; justify-content:center; gap:5px; overflow:hidden; }
+  .film-title { font-family:'Jost',sans-serif; font-size:0.88rem; font-weight:400; letter-spacing:0.06em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+  .film-meta-row { display:flex; align-items:center; gap:5px; overflow:hidden; min-width:0; flex-wrap:nowrap; }
+  .badge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:0; font-family:'Jost',sans-serif; font-size:0.6rem; font-weight:300; letter-spacing:0.1em; flex-shrink:0; white-space:nowrap; }
+  .badge.year    { background:rgba(255,255,255,0.07); color:var(--text-2); font-weight:600; }
+  .badge.rating  { background:rgba(244,162,97,0.15);  color:var(--warm);   font-weight:600; }
+  .badge.runtime { background:transparent; border:1px solid var(--border); color:var(--text-2); }
+  .film-year { display:none; }
+  .film-genre { font-size:0.72rem; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .film-notes-preview { display:none; }
+
+  .info-btn,.delete-btn { background:none; border:none; cursor:pointer; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:0.82rem; transition:background 0.15s,color 0.15s; flex-shrink:0; }
+  .info-btn   { color:var(--text-3); margin-left:4px; }
+  .info-btn:hover { background:var(--accent-glow); color:var(--accent); }
+  .delete-btn { color:var(--text-3); margin-right:10px; }
+  .delete-btn:hover { background:rgba(230,57,70,0.12); color:var(--red); }
+
+  /* ══════════════════════════════════
+     UNRANKED POOL
+  ══════════════════════════════════ */
+  .unranked-section { max-width:600px; margin:48px auto 0; }
+  .unranked-section h2 { font-size:0.58rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-3); margin-bottom:14px; }
+  .unranked-pool { display:flex; flex-wrap:wrap; gap:8px; min-height:56px; padding:16px; border:1px dashed rgba(210,190,150,0.08); border-radius:20px; transition:border-color 0.18s,background 0.18s; }
+  .unranked-pool.drag-over { border-color:rgba(122,159,212,0.35); background:rgba(122,159,212,0.04); }
+
+  /* Pill chip */
+  .unranked-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px 14px 5px 5px;
+    display: flex; align-items: center; gap: 0;
+    cursor: pointer; user-select: none; overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .unranked-card:hover { border-color:var(--border-hi); box-shadow:0 4px 20px rgba(0,0,0,0.5); background:var(--surface-2); }
+  .unranked-card.dragging { opacity:0.3; }
+
+  /* Circular poster inside pill — fades right into pill bg */
+  .unranked-card .poster-wrap {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--surface-2);
+    margin-right: 8px;
+  }
+  .unranked-card .poster-wrap img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.3s ease;
+    filter: brightness(0.88) saturate(1.05);
+  }
+  .unranked-card:hover .poster-wrap img { transform: scale(1.13); filter: brightness(1.02) saturate(1.2); }
+  .unranked-card .poster-wrap::before { display: none; }
+  .unranked-card .poster-wrap::after  { display: none; }
+  .unranked-card .film-title { font-family:'Jost',sans-serif; font-size:0.78rem; font-weight:400; letter-spacing:0.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; color:var(--text); }
+
+  /* ── Modal ── */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(4,8,24,0.8); backdrop-filter:blur(10px); display:none; align-items:center; justify-content:center; z-index:300; padding:20px; }
+  .modal-backdrop.visible { display:flex; }
+  .modal { width:min(420px,100%); background:var(--surface); border-radius:0; padding:28px 32px; border:1px solid var(--border); box-shadow:0 24px 72px rgba(0,0,0,0.85); font-size:0.82rem; color:var(--text); }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .modal-title { font-family:'Cormorant Garamond',serif; font-weight:400; font-style:normal; font-size:1.3rem; letter-spacing:0.08em; text-transform:uppercase; }
+  .modal-close { background:none; border:none; color:var(--text-2); cursor:pointer; font-size:1.1rem; padding:4px 6px; transition:color 0.15s; }
+  .modal-close:hover { color:var(--text); }
+  .modal-section { margin-top:14px; }
+  .modal-section-title { font-size:0.65rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }
+  .modal-notes { width:100%; min-height:68px; border-radius:0; border:none; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.03); color:var(--text); padding:10px 12px; font-family:inherit; font-size:0.82rem; resize:vertical; transition:border-color 0.2s; }
+  .modal-notes:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+  .modal-link { color:var(--accent); font-size:0.8rem; text-decoration:none; }
+  .modal-link:hover { text-decoration:underline; }
+
+  .toast { position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(14px); background:rgba(4,8,20,0.97); color:var(--text); padding:11px 22px; border-radius:0; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; font-family:'Jost',sans-serif; font-weight:300; border:1px solid rgba(201,169,110,0.2); box-shadow:0 16px 48px rgba(0,0,0,0.6); opacity:0; pointer-events:none; transition:opacity 0.22s,transform 0.22s; z-index:400; white-space:nowrap; }
+  .toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+  #touch-ghost { transition:none !important; }
+
+  @media (hover:none) {
+    .drag-handle { color:rgba(255,255,255,0.2); }
+    .info-btn,.delete-btn { width:40px; height:40px; }
+  }
+
+  @media (max-width:600px) {
+    :root { --slot-gap:10px; --page-x:16px; --r-card:18px; --card-h:82px; --poster-w:60px; }
+    body { padding:36px var(--page-x) 100px; }
+    h1 { font-size:2.5rem; }
+    .header { margin-bottom:28px; }
+    .add-film { flex-direction:column; align-items:stretch; gap:10px; margin-bottom:22px; }
+    .search-wrap { width:100%; }
+    .search-wrap input { padding:15px 22px; font-size:1rem; }
+    .controls-row { margin-bottom:14px; }
+    .chip-btn { padding:9px 18px; font-size:0.74rem; }
+    .rank-slot { gap:8px; }
+    .rank-label { width:16px; font-size:0.58rem; }
+    .drag-handle { padding:0 4px 0 8px; }
+    .film-info { padding:0 4px 0 12px; gap:6px; }
+    .film-title { font-size:0.91rem; }
+    .film-meta-row { gap:4px; }
+    .badge { padding:2px 7px; font-size:0.64rem; }
+    .film-genre { font-size:0.7rem; }
+    .info-btn { width:36px; height:36px; margin-left:2px; }
+    .delete-btn { width:36px; height:36px; margin-right:8px; }
+    .unranked-section { margin-top:40px; }
+    .unranked-pool { gap:8px; padding:16px; }
+    .unranked-card .poster-wrap { width:32px; height:32px; }
+    .unranked-card .film-title { font-size:0.82rem; max-width:140px; }
+    .toast { max-width:calc(100vw - 40px); white-space:normal; text-align:center; bottom:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header"><h1>Your TOP 10 Film Ranking</h1></div>
+<div id="toast" class="toast"></div>
+
+<div class="add-film">
+  <div class="search-wrap">
+    <input type="text" id="titleInput" placeholder="Search and select from the list…" autocomplete="off" />
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+  <button id="addBtn" style="display:none" disabled>+ Add Film</button>
+</div>
+
+<div class="controls-row">
+  <button class="chip-btn" onclick="shareAsImage()">Share as image</button>
+</div>
+
+<div class="ranking-area" id="rankingArea"></div>
+<div class="stats-panel" id="statsPanel"></div>
+
+<div class="unranked-section">
+  <h2>Unranked Films</h2>
+  <div class="unranked-pool" id="unrankedPool"
+    ondragover="onDragOver(event,'pool')"
+    ondragleave="onDragLeave(event,'pool')"
+    ondrop="onDrop(event,'pool')">
+    <span style="color:#324060;font-size:0.85rem">Added films appear here — click or drag to rank</span>
+  </div>
+</div>
+
+<!-- Details modal -->
+<div class="modal-backdrop" id="detailsBackdrop" onclick="backdropClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeDetails()">×</button>
+    </div>
+    <div class="modal-section" id="modalMeta"></div>
+    <div class="modal-section"><div class="modal-section-title">Plot</div><div id="modalPlot"></div></div>
+    <div class="modal-section"><div class="modal-section-title">Cast</div><div id="modalCast"></div></div>
+    <div class="modal-section">
+      <div class="modal-section-title">Notes</div>
+      <textarea id="modalNotes" class="modal-notes" placeholder="Why is this film at this rank?"></textarea>
+    </div>
+    <div class="modal-section" id="modalLinkRow"></div>
+  </div>
+</div>
+
+<!-- Off-screen share render target -->
+<div id="shareCanvas"></div>
+
+<script>
+const API_KEY   = 'f9432a29';
+const SLOTS     = 10;
+const LS_KEY    = 'filmRanker_v1';
+
+let ranks   = new Array(SLOTS).fill(null);
+let unranked = [];
+let dragData = null;
+const FALLBACK_EMOJIS = ['🎥','🎞️','🍿','🎭','🌟','🔥','💀','🏆','👁️','🌀'];
+let emojiIdx = 0;
+function uid() { return Math.random().toString(36).slice(2); }
+
+// ── localStorage ──────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ ranks, unranked, emojiIdx }));
+  } catch(e) {}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.ranks)    ranks    = s.ranks;
+    if (s.unranked) unranked = s.unranked;
+    if (s.emojiIdx) emojiIdx = s.emojiIdx;
+  } catch(e) {}
+}
+
+// ── Search ────────────────────────────────────────────────────
+let selectedSuggestion = null, debounceTimer = null, activeIndex = -1, currentSuggestions = [];
+const titleInput   = document.getElementById('titleInput');
+const suggestionsBox = document.getElementById('suggestions');
+
+titleInput.addEventListener('input', () => {
+  selectedSuggestion = null;
+  clearTimeout(debounceTimer);
+  const q = titleInput.value.trim();
+  if (q.length < 2) { hideSuggestions(); return; }
+  debounceTimer = setTimeout(() => fetchSuggestions(q), 300);
+});
+titleInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
+  else if (e.key === 'Enter' && activeIndex >= 0 && currentSuggestions[activeIndex]) selectSuggestion(currentSuggestions[activeIndex]);
+  else if (e.key === 'Escape') hideSuggestions();
+});
+document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) hideSuggestions(); });
+
+function moveActive(dir) {
+  activeIndex = Math.max(-1, Math.min(currentSuggestions.length - 1, activeIndex + dir));
+  document.querySelectorAll('.suggestion-item').forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+}
+async function fetchSuggestions(query) {
+  suggestionsBox.innerHTML = '<div class="suggestions-loading">Searching…</div>';
+  suggestionsBox.classList.add('visible');
+  activeIndex = -1; currentSuggestions = [];
+  try {
+    const res  = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=movie&apikey=${API_KEY}`);
+    const data = await res.json();
+    if (data.Response === 'True' && data.Search) {
+      currentSuggestions = data.Search.slice(0, 8);
+      renderSuggestions(currentSuggestions);
+    } else {
+      suggestionsBox.innerHTML = '<div class="suggestions-empty">No results found</div>';
+    }
+  } catch(e) { suggestionsBox.innerHTML = '<div class="suggestions-empty">Error fetching results</div>'; }
+}
+function renderSuggestions(items) {
+  suggestionsBox.innerHTML = '';
+  items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    const posterEl = item.Poster && item.Poster !== 'N/A'
+      ? `<img class="sug-poster" src="${item.Poster}" loading="lazy" />`
+      : `<div class="sug-poster-placeholder">🎬</div>`;
+    div.innerHTML = `${posterEl}<div class="sug-info"><div class="sug-title">${item.Title}</div><div class="sug-year">${item.Year}</div></div>`;
+    div.addEventListener('mousedown', e => { e.preventDefault(); selectSuggestion(item); });
+    div.addEventListener('mouseover', () => { activeIndex = i; document.querySelectorAll('.suggestion-item').forEach((el,j) => el.classList.toggle('active', j===i)); });
+    suggestionsBox.appendChild(div);
+  });
+  suggestionsBox.classList.add('visible');
+}
+function selectSuggestion(item) {
+  selectedSuggestion = item;
+  titleInput.value = item.Title;
+  hideSuggestions();
+  addSelected();
+}
+function hideSuggestions() {
+  suggestionsBox.classList.remove('visible');
+  suggestionsBox.innerHTML = '';
+  activeIndex = -1; currentSuggestions = [];
+}
+
+// ── Add film ──────────────────────────────────────────────────
+async function addSelected() {
+  if (!selectedSuggestion) return;
+  const imdbID = selectedSuggestion.imdbID;
+  if ([...ranks, ...unranked].some(f => f && f.imdbID === imdbID)) {
+    showToast('This film is already in your ranking');
+    titleInput.value = ''; selectedSuggestion = null; return;
+  }
+  let film = {
+    id: uid(), imdbID,
+    title: selectedSuggestion.Title, year: selectedSuggestion.Year,
+    poster: selectedSuggestion.Poster !== 'N/A' ? selectedSuggestion.Poster : null,
+    genre: null, imdbRating: null, runtime: null,
+    director: null, actors: null, plot: null, imdbURL: null,
+    notes: '', fallback: FALLBACK_EMOJIS[emojiIdx++ % FALLBACK_EMOJIS.length]
+  };
+  try {
+    const res  = await fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${API_KEY}`);
+    const data = await res.json();
+    if (data.Response === 'True') {
+      film.title      = data.Title    || film.title;
+      film.year       = data.Year     || film.year;
+      film.poster     = data.Poster   && data.Poster   !== 'N/A' ? data.Poster   : film.poster;
+      film.genre      = data.Genre    && data.Genre    !== 'N/A' ? data.Genre    : null;
+      film.imdbRating = data.imdbRating && data.imdbRating !== 'N/A' ? data.imdbRating : null;
+      film.runtime    = data.Runtime  && data.Runtime  !== 'N/A' ? data.Runtime  : null;
+      film.director   = data.Director && data.Director !== 'N/A' ? data.Director : null;
+      film.actors     = data.Actors   && data.Actors   !== 'N/A' ? data.Actors   : null;
+      film.plot       = data.Plot     && data.Plot     !== 'N/A' ? data.Plot     : null;
+      film.imdbURL    = `https://www.imdb.com/title/${imdbID}/`;
+    }
+  } catch(e) {}
+  unranked.push(film);
+  titleInput.value = ''; selectedSuggestion = null;
+  renderAnimated();
+}
+
+// ── State helpers ─────────────────────────────────────────────
+function getFilmById(id) {
+  for (let f of ranks)   if (f && f.id === id) return f;
+  for (let f of unranked) if (f && f.id === id) return f;
+  return null;
+}
+function removeFilmFromAll(id) {
+  ranks   = ranks.map(f => f && f.id === id ? null : f);
+  unranked = unranked.filter(f => f.id !== id);
+}
+function deleteFilm(id) {
+  const isRanked = ranks.some(f => f && f.id === id);
+  if (isRanked) {
+    const film = getFilmById(id);
+    removeFilmFromAll(id);
+    unranked.push(film);
+  } else {
+    removeFilmFromAll(id);
+  }
+  renderAnimated();
+}
+
+function rankLabelColor(n) {
+  const t = (n - 1) / (SLOTS - 1);
+  return `rgb(${Math.round(250+(147-250)*t)},${Math.round(197+(197-197)*t)},${Math.round(65+(253-65)*t)})`;
+}
+
+function posterHTML(film, w=42, h=60, r=7) {
+  if (film.poster) return `<div class="poster-wrap" style="width:${w}px;height:${h}px;border-radius:${r}px"><img src="${film.poster}" alt="${film.title}" loading="lazy" /></div>`;
+  return `<div class="poster-wrap" style="width:${w}px;height:${h}px;border-radius:${r}px"><span class="poster-placeholder">${film.fallback}</span></div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render() { renderRanking(); renderPool(); renderStats(); saveState(); }
+
+function renderRanking() {
+  const area = document.getElementById('rankingArea');
+  area.innerHTML = '';
+  for (let i = SLOTS - 1; i >= 0; i--) {
+    const dn = SLOTS - i;
+    const slot = document.createElement('div');
+    slot.className = 'rank-slot';
+    slot.dataset.slot = i;
+    const label = document.createElement('div');
+    label.className = 'rank-label';
+    label.style.color = rankLabelColor(dn);
+    label.textContent = '#' + dn;
+    slot.appendChild(label);
+
+    const film = ranks[i];
+    if (film) {
+      const card = document.createElement('div');
+      card.className = 'film-card';
+      card.draggable = true;
+      card.dataset.id = film.id;
+      card.innerHTML = `
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        ${posterHTML(film)}
+        <div class="film-info">
+          <div class="film-title">${film.title}</div>
+          <div class="film-meta-row">
+            ${film.year       ? `<span class="badge year">${film.year}</span>` : ''}
+            ${film.imdbRating ? `<span class="badge rating">★ ${film.imdbRating}</span>` : ''}
+            ${film.runtime    ? `<span class="badge runtime">${film.runtime}</span>` : ''}
+          </div>
+          ${film.director ? `<div class="film-genre">${film.director.split(',')[0].trim()}</div>` : film.genre ? `<div class="film-genre">${film.genre}</div>` : ''}
+        </div>
+        <button class="info-btn"    type="button" onclick="openDetails('${film.id}')" title="Details & notes">i</button>
+        <button class="delete-btn"  onclick="deleteFilm('${film.id}')" title="Remove">✕</button>
+      `;
+      card.addEventListener('dragstart', e => onDragStart(e, film.id, i));
+      initTouchOnCard(card, film.id, i);
+      card.addEventListener('dragend',   onDragEnd);
+      card.addEventListener('dragover',  e => onDragOver(e, i));
+      card.addEventListener('dragleave', e => onDragLeave(e, i));
+      card.addEventListener('drop',      e => onDrop(e, i));
+      slot.appendChild(card);
+    } else {
+      const zone = document.createElement('div');
+      zone.className = 'drop-zone';
+      zone.textContent = 'Drop a film here';
+      zone.addEventListener('dragover',  e => onDragOver(e, i));
+      zone.addEventListener('dragleave', e => onDragLeave(e, i));
+      zone.addEventListener('drop',      e => onDrop(e, i));
+      slot.appendChild(zone);
+    }
+    area.appendChild(slot);
+  }
+}
+
+function renderPool() {
+  const pool = document.getElementById('unrankedPool');
+  pool.innerHTML = '';
+  if (!unranked.length) {
+    pool.innerHTML = '<span style="color:#324060;font-size:0.85rem">Added films appear here — click or drag to rank</span>';
+    return;
+  }
+  for (const film of unranked) {
+    const card = document.createElement('div');
+    card.className = 'unranked-card';
+    card.draggable = true;
+    card.dataset.id = film.id;
+    card.innerHTML = `
+      ${posterHTML(film, 30, 42, 5)}
+      <div class="film-info">
+        <div class="film-title">${film.title}</div>
+        <div class="film-meta-row">
+          ${film.imdbRating ? `<span class="badge rating">★ ${film.imdbRating}</span>` : ''}
+          ${film.runtime    ? `<span class="badge runtime">${film.runtime}</span>` : ''}
+        </div>
+        ${film.year ? `<div class="film-year">${film.year}</div>` : ''}
+      </div>
+      <button class="info-btn"   type="button" onclick="openDetails('${film.id}')" title="Details & notes">i</button>
+      <button class="delete-btn" onclick="deleteFilm('${film.id}')" title="Remove">✕</button>
+    `;
+    card.addEventListener('dragstart', e => onDragStart(e, film.id, 'pool'));
+    initTouchOnCard(card, film.id, 'pool');
+    card.addEventListener('dragend',   onDragEnd);
+    card.addEventListener('click',     e => { if (!e.target.closest('button')) addToWorstSlot(film.id); });
+    pool.appendChild(card);
+  }
+}
+
+// ── Click-to-rank ─────────────────────────────────────────────
+function poolRipple(excludeId){
+  document.querySelectorAll(`.unranked-card[data-id]:not([data-id="${excludeId}"])`).forEach((c,idx)=>{
+    setTimeout(()=>{c.style.transition='transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';c.style.transform='scale(1.04)';setTimeout(()=>{c.style.transition='transform 0.2s ease';c.style.transform='scale(1)';},150);},idx*35);
+  });
+}
+function addToWorstSlot(id){
+  const film=getFilmById(id);if(!film)return;
+  if(ranks.every(f=>f!==null)){showToast('Your Top 10 is full — drag a film out first');return;}
+  const card=document.querySelector(`.unranked-card[data-id="${id}"]`);
+  const doRank=()=>{removeFilmFromAll(id);const fe=ranks.findIndex(f=>f===null);for(let i=fe;i>0;i--)ranks[i]=ranks[i-1];ranks[0]=film;renderAnimated(film.id);};
+  if(card){poolRipple(id);card.style.transition='opacity 0.15s ease,transform 0.15s ease';card.style.opacity='0';card.style.transform='scale(0.7)';setTimeout(doRank,150);}else{doRank();}
+}
+
+
+// ── Drag & drop ───────────────────────────────────────────────
+function onDragStart(e, id, from) {
+  dragData = { id, from };
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => document.querySelectorAll(`[data-id="${id}"]`).forEach(c => c.classList.add('dragging')), 0);
+}
+function onDragEnd() {
+  document.querySelectorAll('.dragging').forEach(c => c.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over,.insert-mode').forEach(c => c.classList.remove('drag-over','insert-mode'));
+}
+function onDragOver(e, target) {
+  e.preventDefault();
+  if (target === 'pool') { document.getElementById('unrankedPool').classList.add('drag-over'); return; }
+  const el = e.currentTarget;
+  el.classList.remove('drag-over');
+  el.classList.add(ranks[target] !== null ? 'insert-mode' : 'drag-over');
+}
+function onDragLeave(e, target) {
+  if (target === 'pool') document.getElementById('unrankedPool').classList.remove('drag-over');
+  else e.currentTarget.classList.remove('drag-over','insert-mode');
+}
+function onDrop(e, target) {
+  e.preventDefault();
+  if (!dragData) return;
+  const { id, from } = dragData;
+  const film = getFilmById(id);
+  if (!film) return;
+  const prevRanks = [...ranks];
+
+  if (target === 'pool') {
+    document.getElementById('unrankedPool').classList.remove('drag-over');
+    removeFilmFromAll(id); unranked.push(film);
+  } else if (target === from) {
+    // no-op
+  } else if (typeof from === 'number') {
+    // Smart shift: free the source slot, then only shift films between the
+    // nearest empty slot (closest to target) and the target itself.
+    // Films beyond that empty are untouched.
+    ranks[from] = null;
+
+    if (!ranks[target]) {
+      // Target already empty — just land there, nothing shifts
+      ranks[target] = film;
+    } else if (target > from) {
+      // Moving right: find rightmost empty between from+1 and target-1
+      let gap = -1;
+      for (let i = target - 1; i > from; i--) { if (!ranks[i]) { gap = i; break; } }
+      const start = gap !== -1 ? gap : from;
+      for (let i = start; i < target; i++) ranks[i] = ranks[i + 1];
+      ranks[target] = film;
+    } else {
+      // Moving left: find leftmost empty between target+1 and from-1
+      let gap = -1;
+      for (let i = target + 1; i < from; i++) { if (!ranks[i]) { gap = i; break; } }
+      const start = gap !== -1 ? gap : from;
+      for (let i = start; i > target; i--) ranks[i] = ranks[i - 1];
+      ranks[target] = film;
+    }
+  } else {
+    // from pool → ranked slot
+    if (!ranks[target]) {
+      // Target is empty: place directly
+      removeFilmFromAll(id);
+      ranks[target] = film;
+    } else {
+      removeFilmFromAll(id);
+      // Look for empty slot below target (toward worse rank)
+      let emptyBelow = -1;
+      for (let i = target - 1; i >= 0; i--) { if (!ranks[i]) { emptyBelow = i; break; } }
+      // Look for empty slot above target (toward better rank)
+      let emptyAbove = -1;
+      for (let i = target + 1; i < SLOTS; i++) { if (!ranks[i]) { emptyAbove = i; break; } }
+
+      if (emptyBelow !== -1) {
+        // Shift films down to fill the empty slot below, place film at target
+        for (let i = emptyBelow; i < target; i++) ranks[i] = ranks[i + 1];
+        ranks[target] = film;
+      } else if (emptyAbove !== -1) {
+        // Shift films up to fill the empty slot above, place film at target
+        for (let i = emptyAbove; i > target; i--) ranks[i] = ranks[i - 1];
+        ranks[target] = film;
+      } else {
+        // Truly full: eject last film (slot 0 = worst) to unranked
+        const displaced = ranks[0];
+        for (let i = 0; i < target; i++) ranks[i] = ranks[i + 1];
+        ranks[target] = film;
+        unranked.push(displaced);
+        showToast('One film was moved out of the top 10 into Unranked');
+      }
+    }
+  }
+  const movedId = id;
+  dragData = null;
+  renderAnimated(movedId);
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function renderStats() {
+  const panel = document.getElementById('statsPanel');
+  const ranked = ranks.filter(f => f);
+  if (!ranked.length) { panel.innerHTML = ''; panel.classList.remove('visible'); panel.style.display = 'none'; return; }
+  const years = ranked.map(f => parseInt((f.year||'').slice(0,4))).filter(x => !isNaN(x));
+  const avgYear = years.length ? Math.round(years.reduce((a,b)=>a+b,0)/years.length) : null;
+  const genres = {};
+  ranked.forEach(f => { if (!f.genre) return; f.genre.split(',').map(g=>g.trim()).forEach(g => { if(g) genres[g]=(genres[g]||0)+1; }); });
+  const topGenres = Object.entries(genres).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([g,c])=>`${g} (${c})`).join(', ');
+  const ratings = ranked.map(f=>parseFloat(f.imdbRating)).filter(x=>!isNaN(x));
+  const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : null;
+  panel.style.display = 'block'; requestAnimationFrame(() => panel.classList.add('visible'));
+  panel.innerHTML = `
+    <div class="stats-title">Stats & insights</div>
+    <div class="stats-grid">
+      <div class="stat-pill"><div class="stat-label">Avg year</div><div class="stat-value">${avgYear||'-'}</div></div>
+      <div class="stat-pill"><div class="stat-label">Avg IMDb</div><div class="stat-value">${avgRating||'-'}</div></div>
+      <div class="stat-pill"><div class="stat-label">Top genres</div><div class="stat-value">${topGenres||'-'}</div></div>
+    </div>
+  `;
+}
+
+// ── Details modal ─────────────────────────────────────────────
+let currentDetailId = null;
+function openDetails(id) {
+  const film = getFilmById(id); if (!film) return;
+  currentDetailId = id;
+  document.getElementById('modalTitle').textContent = film.title;
+  document.getElementById('modalMeta').textContent  = [film.year, film.runtime, film.imdbRating ? '★ '+film.imdbRating : null, film.director ? 'Dir. '+film.director : null].filter(Boolean).join(' • ');
+  document.getElementById('modalPlot').textContent  = film.plot   || 'No plot available.';
+  document.getElementById('modalCast').textContent  = film.actors || 'No cast information.';
+  const ta = document.getElementById('modalNotes');
+  ta.value = film.notes || '';
+  ta.oninput = function() { const f = getFilmById(currentDetailId); if(f) { f.notes = this.value; render(); } };
+  document.getElementById('modalLinkRow').innerHTML = film.imdbURL ? `<a class="modal-link" href="${film.imdbURL}" target="_blank">View on IMDb ↗</a>` : '';
+  document.getElementById('detailsBackdrop').classList.add('visible');
+}
+function closeDetails() { document.getElementById('detailsBackdrop').classList.remove('visible'); }
+function backdropClick(e) { if (e.target.id === 'detailsBackdrop') closeDetails(); }
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('visible');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.classList.remove('visible'), 2200);
+}
+
+// ── Share as image ────────────────────────────────────────────
+async function shareAsImage() {
+  const ranked = ranks.map((f,i)=>f?{film:f,rank:SLOTS-i}:null).filter(Boolean).sort((a,b)=>a.rank-b.rank);
+  if (ranked.length<SLOTS){showToast(`Fill all 10 spots first (${ranked.length}/10 ranked)`);return;}
+  showToast('Generating image…');
+  const SCALE=2,W=640,PAD=28,F="'Jost',system-ui,sans-serif",FB="'Playfair Display',Georgia,serif";
+  const rowH=r=>r===1?108:r<=3?76:56,postW=r=>r===1?64:r<=3?48:36,postH=r=>r===1?90:r<=3?68:50;
+  const HEADER=88,FOOTER=48,GSEP=8;
+  const H=HEADER+ranked.reduce((s,{rank})=>s+rowH(rank),0)+GSEP*2+FOOTER;
+  const medal=r=>r===1?'rgba(122,159,212,0.55)':r===2?'rgba(122,159,212,0.35)':r===3?'rgba(122,159,212,0.22)':`rgba(122,159,212,${Math.max(0.12,0.22-(r-4)*0.03)})`;
+  const medalBg=r=>null;
+  const canvas=document.createElement('canvas');canvas.width=W*SCALE;canvas.height=H*SCALE;
+  const ctx=canvas.getContext('2d');ctx.scale(SCALE,SCALE);
+  const gbg=ctx.createLinearGradient(0,0,0,H);gbg.addColorStop(0,'#0d1830');gbg.addColorStop(0.4,'#080e1a');gbg.addColorStop(1,'#040810');ctx.fillStyle=gbg;ctx.fillRect(0,0,W,H);
+  const topGlow=ctx.createRadialGradient(W/2,0,0,W/2,0,W*0.55);topGlow.addColorStop(0,'rgba(80,120,220,0.10)');topGlow.addColorStop(1,'rgba(80,120,220,0)');ctx.fillStyle=topGlow;ctx.fillRect(0,0,W,H);
+  const loadImg=async url=>{if(!url)return null;try{const r=await fetch(url);if(!r.ok)return null;const b=await r.blob();const s=URL.createObjectURL(b);return await new Promise(res=>{const i=new Image();i.onload=()=>{URL.revokeObjectURL(s);res(i);};i.onerror=()=>{URL.revokeObjectURL(s);res(null);};i.src=s;});}catch{return null;}};
+  const imgs=await Promise.all(ranked.map(({film})=>loadImg(film.poster)));
+  const rr=(x,y,w,h,r)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();};
+  const clip=(text,maxW)=>{if(!text)return'';let t=text;while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t.length<text.length?t+'…':t;};
+  ctx.fillStyle='#ede8de';ctx.font=`400 24px ${FB}`;
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.letterSpacing='0.18em';
+  ctx.fillText('MY TOP 10 FILMS',W/2,HEADER/2-8);
+  ctx.strokeStyle='rgba(122,159,212,0.3)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(PAD*3,HEADER-16);ctx.lineTo(W-PAD*3,HEADER-16);ctx.stroke();
+  
+  let y=HEADER;
+  ranked.forEach(({film,rank},i)=>{
+    const h=rowH(rank),PW=postW(rank),PH=postH(rank),col=medal(rank);
+    const tint=medalBg(rank);if(tint){ctx.fillStyle=tint;ctx.fillRect(0,y,W,h);}
+    // faint hairline separator between rows
+    if(i>0){ctx.strokeStyle='rgba(122,159,212,0.08)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(PAD,y);ctx.lineTo(W-PAD,y);ctx.stroke();}
+    if(rank===1){const glow=ctx.createRadialGradient(W*0.35,y+h/2,0,W*0.35,y+h/2,W*0.55);glow.addColorStop(0,'rgba(80,120,220,0.05)');glow.addColorStop(1,'rgba(80,120,220,0)');ctx.fillStyle=glow;ctx.fillRect(0,y,W,h);}
+    if(rank<=3){const bH=rank===1?h*0.65:h*0.45;ctx.fillStyle='rgba(122,159,212,1)';ctx.globalAlpha=rank===1?0.30:rank===2?0.18:0.10;rr(0,y+(h-bH)/2,2,bH,0);ctx.fill();ctx.globalAlpha=1;}
+    ctx.fillStyle=col;ctx.font=`300 ${rank===1?26:rank<=3?19:13}px ${F}`;ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(String(rank),PAD+22,y+h/2);
+    const px=PAD+36,py=y+(h-PH)/2;ctx.save();
+    if(rank<=3){ctx.shadowColor=col;ctx.shadowBlur=rank===1?18:10;}
+    if(imgs[i]){rr(px,py,PW,PH,0);ctx.clip();ctx.drawImage(imgs[i],px,py,PW,PH);}
+    else{ctx.fillStyle='#0d1830';rr(px,py,PW,PH,0);ctx.fill();ctx.fillStyle='rgba(122,159,212,0.25)';ctx.font='16px sans-serif';ctx.shadowBlur=0;ctx.textAlign='center';ctx.fillText('🎬',px+PW/2,py+PH/2);}
+    ctx.restore();
+    const tx=px+PW+14,maxW=W-tx-PAD;ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillStyle=rank===1?'#ede8de':rank<=3?'rgba(237,232,222,0.9)':'rgba(237,232,222,0.72)';
+    ctx.font=`${rank===1?'500':'400'} ${rank===1?15:rank<=3?13:11}px ${F}`;
+    ctx.fillText(clip(film.title,maxW),tx,rank===1?y+h/2-10:y+h/2-9);
+    const meta=[film.year,film.imdbRating?`★ ${film.imdbRating}`:null,film.director?film.director.split(',')[0].trim():null].filter(Boolean).join('  ·  ');
+    ctx.fillStyle=rank===1?'rgba(122,159,212,0.75)':rank<=3?'rgba(122,159,212,0.55)':'rgba(122,159,212,0.38)';
+    ctx.font=`200 ${rank<=3?11:10}px ${F}`;ctx.fillText(clip(meta,maxW),tx,rank===1?y+h/2+8:y+h/2+8);
+    y+=h;if(rank===1||rank===3)y+=GSEP;
+  });
+  ctx.strokeStyle='rgba(122,159,212,0.2)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(PAD*3,y+10);ctx.lineTo(W-PAD*3,y+10);ctx.stroke();ctx.fillStyle='rgba(122,159,212,0.32)';ctx.font=`200 8px ${F}`;ctx.letterSpacing='0.22em';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('©gnemm',W/2,y+FOOTER/2+4);
+  canvas.toBlob(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='my-top10-films.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);showToast('Image downloaded!');},'image/png');
+}
+
+// ── FLIP animation ───────────────────────────────────────────
+function capturePositions() {
+  const map = {};
+  document.querySelectorAll('.film-card[data-id], .unranked-card[data-id]').forEach(card => {
+    map[card.dataset.id] = card.getBoundingClientRect();
+  });
+  return map;
+}
+
+function applyFLIP(before, draggedId, prevUnrankedIds = new Set()) {
+  requestAnimationFrame(() => {
+    // Animate ranked cards
+    document.querySelectorAll('.film-card[data-id]').forEach(card => {
+      const id   = card.dataset.id;
+      const prev = before[id];
+      const curr = card.getBoundingClientRect();
+      const dy   = prev ? prev.top - curr.top : null;
+
+      if (id === draggedId) {
+        card.style.transition = 'none';
+        card.style.opacity    = '0';
+        card.style.transform  = 'scale(0.96)';
+        card.offsetHeight;
+        card.style.transition = 'opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+        card.style.opacity    = '1';
+        card.style.transform  = 'scale(1)';
+      } else if (!prev || Math.abs(dy) > 2) {
+        card.style.transition = 'none';
+        card.style.transform  = prev ? `translateY(${dy}px)` : 'translateY(10px)';
+        card.style.opacity    = prev ? '1' : '0';
+        card.offsetHeight;
+        card.style.transition = 'transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease';
+        card.style.transform  = 'translateY(0)';
+        card.style.opacity    = '1';
+      }
+    });
+
+    const newArrivals=[], existingCards=[];
+    document.querySelectorAll('.unranked-card[data-id]').forEach(card=>{
+      (prevUnrankedIds.has(card.dataset.id)?existingCards:newArrivals).push(card);
+    });
+    newArrivals.forEach(card=>{
+      card.style.transition='none';card.style.opacity='0';card.style.transform='scale(0.6)';
+      card.offsetHeight;
+      card.style.transition='opacity 0.3s ease,transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+      card.style.opacity='1';card.style.transform='scale(1)';
+    });
+    if(newArrivals.length>0){existingCards.forEach((card,idx)=>{setTimeout(()=>{card.style.transition='transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';card.style.transform='scale(1.04)';setTimeout(()=>{card.style.transition='transform 0.2s ease';card.style.transform='scale(1)';},150);},idx*35);});}
+  });
+}
+
+function renderAnimated(draggedId) {
+  const before          = capturePositions();
+  const prevUnrankedIds = new Set([...document.querySelectorAll('.unranked-card[data-id]')].map(c => c.dataset.id));
+  render();
+  applyFLIP(before, draggedId, prevUnrankedIds);
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadState();
+render();
+
+  // ── Touch Drag-and-Drop ──────────────────────────────────────────────────────
+  let touchDrag    = null;
+  let touchPending = null;
+
+  function initTouchOnCard(card, id, from) {
+    card.addEventListener('touchstart', e => {
+      if (e.target.closest('button')) return;
+      const touch = e.touches[0];
+      touchPending = { id, from, startX: touch.clientX, startY: touch.clientY, card };
+    }, { passive: true });
+  }
+
+  document.addEventListener('touchmove', e => {
+    if (!touchPending && !touchDrag) return;
+    const touch = e.touches[0];
+
+    if (touchPending && !touchDrag) {
+      const dx = touch.clientX - touchPending.startX;
+      const dy = touch.clientY - touchPending.startY;
+      if (Math.sqrt(dx * dx + dy * dy) > 6) {
+        const card = touchPending.card;
+        const rect = card.getBoundingClientRect();
+        const ghost = card.cloneNode(true);
+        ghost.id = 'touch-ghost';
+        ghost.style.cssText = [
+          'position:fixed',
+          `top:${rect.top}px`,
+          `left:${rect.left}px`,
+          `width:${rect.width}px`,
+          'opacity:0.88',
+          'pointer-events:none',
+          'z-index:9999',
+          'transform:scale(1.05) rotate(-1.5deg)',
+          'box-shadow:0 14px 40px rgba(0,0,0,0.55)',
+          'border-radius:10px',
+          'transition:none'
+        ].join(';');
+        document.body.appendChild(ghost);
+        card.classList.add('dragging');
+        touchDrag = {
+          ...touchPending,
+          ghost,
+          offsetX: touch.clientX - rect.left,
+          offsetY: touch.clientY - rect.top,
+          dropTarget: null
+        };
+        touchPending = null;
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (touchDrag) {
+      e.preventDefault();
+      const { ghost, offsetX, offsetY } = touchDrag;
+      ghost.style.left = (touch.clientX - offsetX) + 'px';
+      ghost.style.top  = (touch.clientY - offsetY) + 'px';
+
+      ghost.style.display = 'none';
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      ghost.style.display = '';
+
+      document.querySelectorAll('.drag-over,.insert-mode').forEach(c => c.classList.remove('drag-over', 'insert-mode'));
+
+      if (el) {
+        const slot = el.closest('[data-slot]');
+        const pool = el.closest('#unrankedPool');
+        if (slot) {
+          const target = parseInt(slot.dataset.slot);
+          slot.classList.add(ranks[target] !== null ? 'insert-mode' : 'drag-over');
+          touchDrag.dropTarget = target;
+        } else if (pool) {
+          pool.classList.add('drag-over');
+          touchDrag.dropTarget = 'pool';
+        } else {
+          touchDrag.dropTarget = null;
+        }
+      }
+    }
+  }, { passive: false });
+
+  function cleanupTouch() {
+    touchPending = null;
+    if (!touchDrag) return;
+    touchDrag.ghost.remove();
+    document.querySelectorAll('.dragging').forEach(c => c.classList.remove('dragging'));
+    document.querySelectorAll('.drag-over,.insert-mode').forEach(c => c.classList.remove('drag-over', 'insert-mode'));
+    touchDrag = null;
+  }
+
+  document.addEventListener('touchend', e => {
+    touchPending = null;
+    if (!touchDrag) return;
+    const { id, from } = touchDrag;
+    const target = touchDrag.dropTarget;
+    cleanupTouch();
+    if (target === null || target === undefined) return;
+    dragData = { id, from };
+    onDrop({ preventDefault: () => {} }, target);
+  });
+
+  document.addEventListener('touchcancel', cleanupTouch);
+
+  </script>
+</body>
+</html>
